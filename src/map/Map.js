@@ -70,13 +70,9 @@ Map.prototype.getObject3D = function () {
 
     let base = new THREE.BoxGeometry(this.width, 0, this.depth);
 
-    const texture = new THREE.TextureLoader().load('assets/textures/scity.png');
-
     var material = new THREE.MeshBasicMaterial({
         color: 0xffffff
     });
-
-    // let material = new THREE.MeshBasicMaterial({map: texture});
 
     let baseMesh = new THREE.Mesh(base, material);
     baseMesh.receiveShadow = true;

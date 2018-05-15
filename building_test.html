@@ -59,31 +59,13 @@
         };
 
 
-        var cityMap = new MAP3D.Map(600, 300, map6);
+        var cityMap = new MAP3D.Map(600, 300, map7);
 
         mesh = cityMap.getObject3D();
         cityMap.loadGeo();
 
 
         scene.add(mesh);
-
-        var SHADOW_MAP_WIDTH = 2048, SHADOW_MAP_HEIGHT = 1024;
-
-
-        light = new THREE.SpotLight(0xffffff, 1, 0, Math.PI / 2);
-        light.position.set(0, 750, 500);
-        light.target.position.set(0, 0, 0);
-        light.castShadow = true;
-
-        light.shadow = new THREE.LightShadow(new THREE.PerspectiveCamera(50, 1, 1200, 2500));
-        light.shadow.bias = 0.0001;
-        light.shadow.mapSize.width = SHADOW_MAP_WIDTH;
-        light.shadow.mapSize.height = SHADOW_MAP_HEIGHT;
-        var helper = new THREE.CameraHelper(light.shadow.camera);
-
-        //scene.add( light );
-        //scene.add( helper );
-
 
         renderer = new THREE.WebGLRenderer({antialias: true});
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -94,9 +76,6 @@
         renderer.gammaInput = true;
         renderer.gammaOutput = true;
 
-        //renderer.shadowMap.enabled = true;
-        //renderer.shadowMap.type = THREE.PCFShadowMap;
-        //
         window.addEventListener('resize', onWindowResize, false);
     }
 
