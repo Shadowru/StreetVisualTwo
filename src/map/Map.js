@@ -13,9 +13,6 @@ function Map(width, depth, geoOptions) {
 
     this.baseObject = new THREE.Object3D();
 
-    console.log('metersPerPixelX : ' + this.geoProcessor.getMetersPerPixelX());
-    console.log('metersPerPixelZ : ' + this.geoProcessor.getMetersPerPixelZ());
-
     this.initBuilders();
 
 }

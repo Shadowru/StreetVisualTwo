@@ -3,6 +3,9 @@ function GeoProcessor(width, height, geoOptions) {
     this.width = width;
     this.height = height;
 
+    this.halfWidth = this.width / 2;
+    this.halfHeight = this.height / 2;
+
     this.geoOptions = geoOptions;
 
     const from = turf.point(this.geoOptions.upperLeft);
@@ -25,19 +28,16 @@ function GeoProcessor(width, height, geoOptions) {
     this.metersPerPixelX = this.longitudeDelta / this.width;
     this.metersPerPixelZ = this.latitudeDelta / this.height;
 
+    console.log('metersPerPixelX : ' + this.metersPerPixelX);
+    console.log('metersPerPixelZ : ' + this.metersPerPixelZ);
+
 }
 
-GeoProcessor.prototype.getMetersPerPixelX = function() {
-    return this.metersPerPixelX;
-};
-
-GeoProcessor.prototype.getMetersPerPixelZ = function() {
-    return this.metersPerPixelZ;
-};
-
 GeoProcessor.prototype.loadJSON = function () {
+
+    THREE.Cache.enabled = true;
+
     let loadPromise = new Promise(function (resolve, reject) {
-        THREE.Cache.enabled = true;
 
         const loader = new THREE.FileLoader();
 
@@ -54,14 +54,6 @@ GeoProcessor.prototype.loadJSON = function () {
     return loadPromise;
 };
 
-GeoProcessor.prototype.parseGeoJSON = function (geoJSON, callback) {
-
-    geoJSON.features.forEach(function (featureJSON) {
-        callback(featureJSON);
-    });
-};
-
-
 GeoProcessor.prototype.convertLongitude = function (longitude) {
 
     try {
@@ -72,7 +64,7 @@ GeoProcessor.prototype.convertLongitude = function (longitude) {
         const longitudeDistance = turf.distance(this.zeroPoint, point) * 1000;
         const xPos = longitudeDistance / this.metersPerPixelX;
         //console.log('xPos = ' + xPos);
-        return xPos - this.width / 2;
+        return xPos - this.halfWidth;
     } catch (e) {
         console.log('Bad data : ' + longitude);
     }
@@ -87,7 +79,7 @@ GeoProcessor.prototype.convertLatitude = function (latitude) {
     //console.log('latitudeDinstance = ' + latitudeDinstance);
     const zPos = latitudeDistance / this.metersPerPixelZ;
     //console.log('zPos = ' + zPos);
-    return zPos - this.depth / 2;
+    return zPos - this.halfHeight;
 };
 
 GeoProcessor.prototype.convertGeoToPixel = function (coords) //[longitude, latitude]
@@ -398,9 +390,6 @@ function Map(width, depth, geoOptions) {
     this.geoProcessor = new GeoProcessor(this.width, this.depth, this.geoOptions);
 
     this.baseObject = new THREE.Object3D();
-
-    console.log('metersPerPixelX : ' + this.geoProcessor.getMetersPerPixelX());
-    console.log('metersPerPixelZ : ' + this.geoProcessor.getMetersPerPixelZ());
 
     this.initBuilders();
 
