@@ -197,8 +197,6 @@ function BuildingBuilder(geoProcessor) {
 
     this.roofMaterial = new THREE.MeshBasicMaterial({
         color: 'white',
-        //TODO: Fix normals
-        side: THREE.DoubleSide
     });
     //this.material = new THREE.MeshPhongMaterial({color: 0x001111, flatShading: THREE.SmoothShading});
 
@@ -358,19 +356,21 @@ BuildingBuilder.prototype.build = function (featureJSON) {
             if (roofGeometry !== undefined) {
                 let roof = new THREE.Mesh(roofGeometry, this.roofMaterial);
 
-                let singleGeometry = new THREE.Geometry();
+                return [building, roof];
 
-                singleGeometry.merge(building.geometry, building.matrix);
-
-                singleGeometry.merge(roof.geometry, roof.matrix);
-
-                let singleObject = new THREE.Mesh(singleGeometry, this.material);
-
-                building = singleObject;
+                // let singleGeometry = new THREE.Geometry();
+                //
+                // singleGeometry.merge(building.geometry, building.matrix);
+                //
+                // singleGeometry.merge(roof.geometry, roof.matrix);
+                //
+                // let singleObject = new THREE.Mesh(singleGeometry, this.material);
+                //
+                // building = singleObject;
             }
 
 
-            return building;
+            return [building];
         }
     } catch (e) {
         console.log('Exception :' + e);
@@ -411,12 +411,14 @@ Map.prototype.buildFromFeature = function (featureJSON) {
     this.builders.forEach(function (builder) {
         if (builder.isYourFeature(featureJSON)) {
 
-            const feature3D = builder.build(
+            const feature3Ds = builder.build(
                 featureJSON
             );
 
-            if (feature3D !== undefined) {
-                instance.baseObject.add(feature3D);
+            if (feature3Ds !== undefined) {
+                feature3Ds.forEach(function (feature3D) {
+                    instance.baseObject.add(feature3D);
+                });
             }
         }
     });

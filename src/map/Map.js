@@ -33,12 +33,14 @@ Map.prototype.buildFromFeature = function (featureJSON) {
     this.builders.forEach(function (builder) {
         if (builder.isYourFeature(featureJSON)) {
 
-            const feature3D = builder.build(
+            const feature3Ds = builder.build(
                 featureJSON
             );
 
-            if (feature3D !== undefined) {
-                instance.baseObject.add(feature3D);
+            if (feature3Ds !== undefined) {
+                feature3Ds.forEach(function (feature3D) {
+                    instance.baseObject.add(feature3D);
+                });
             }
         }
     });
