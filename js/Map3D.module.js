@@ -158,7 +158,8 @@ BasicBuilder.prototype.generateEdges = function (contourCoordinates) {
 
 BasicBuilder.prototype.generateEdgesFromJSON = function (featureJSON) {
 
-    const edges = this.generateEdges(featureJSON.geometry.coordinates[0]);
+    const edges = this.generateEdges(
+        featureJSON.geometry.coordinates[0]);
 
     return edges;
 };
@@ -188,15 +189,16 @@ function BuildingBuilder(geoProcessor, textureGenerator) {
     this.textureGenerator = textureGenerator;
 
     // Meters
-    this.DEFAULT_BUILDING_HEIGHT = 3.5;
+    this.DEFAULT_ZOCCOLE_HEIGHT = 0.6;
     this.DEFAULT_FLOOR_HEIGHT = 2.6;
+
+    this.DEFAULT_BUILDING_HEIGHT = this.DEFAULT_FLOOR_HEIGHT + this.DEFAULT_ZOCCOLE_HEIGHT;
     this.DEFAULT_ROOF_HEIGHT = 1.6;
 
     //Textures
-    this.material =
-        this.roofMaterial = new THREE.MeshBasicMaterial({
-            map: this.textureGenerator.generateDefaultBuildingTexture(this.DEFAULT_BUILDING_HEIGHT),
-        });
+    this.material = new THREE.MeshBasicMaterial({
+        map: this.textureGenerator.generateDefaultBuildingTexture(this.DEFAULT_BUILDING_HEIGHT),
+    });
 
     this.roofMaterial = new THREE.MeshBasicMaterial({
         color: 'white',
@@ -219,7 +221,7 @@ BuildingBuilder.prototype.isYourFeature = function (featureJSON) {
         return false;
     }
 
-    if (featureJSON.properties.tags['building'] !== 'yes') {
+    if (featureJSON.properties.tags['building'] === undefined) {
         return false;
     }
 
@@ -362,6 +364,40 @@ BuildingBuilder.prototype.generateRoofGeometry = function (edges, height) {
     return undefined;
 };
 
+BuildingBuilder.prototype.getBuildingMaterial = function (properties) {
+
+    if (properties === undefined) {
+        return this.material;
+    }
+
+    if (properties.tags === undefined) {
+        return this.material;
+    }
+
+    let cladding = properties.tags['building:cladding'];
+    let color = properties.tags['building:colour'];
+    let floors = properties.tags['building:levels'];
+
+    let options = {
+        material: cladding,
+        color: color,
+        floors: floors,
+        floorHeight: this.DEFAULT_FLOOR_HEIGHT,
+        zoccoleHeight: this.DEFAULT_ZOCCOLE_HEIGHT,
+        roofHeight: this.DEFAULT_ROOF_HEIGHT
+    };
+
+    let texture = this.textureGenerator.generateBuildingTexture(options);
+
+    if (texture !== undefined) {
+        return new THREE.MeshBasicMaterial({
+            map: texture,
+        });
+    }
+
+    return this.material;
+};
+
 
 BuildingBuilder.prototype.build = function (featureJSON) {
     try {
@@ -380,7 +416,8 @@ BuildingBuilder.prototype.build = function (featureJSON) {
         const geometry = instance.generateBuildingGeometry(edges, buildingHeight);
 
         if (geometry !== undefined) {
-            let building = new THREE.Mesh(geometry, this.material);
+
+            let building = new THREE.Mesh(geometry, this.getBuildingMaterial(featureJSON.properties));
 
             let roofGeometry = this.generateRoofGeometry(edges, buildingHeight);
 
@@ -410,20 +447,82 @@ BuildingBuilder.prototype.build = function (featureJSON) {
     return undefined;
 };
 
+function BuildingTextureFabric() {
+    this.DEFAULT_TEXTURE_SIZE = 256;
+}
+BuildingTextureFabric.prototype.getColor = function (color) {
+    let color2 = new THREE.Color(color);
+
+    return color2;
+};
+
+BuildingTextureFabric.prototype.buildTexture = function (color, material, floorCount) {
+
+    let width = this.DEFAULT_TEXTURE_SIZE;
+
+    let height = this.DEFAULT_TEXTURE_SIZE * floorCount;
+
+    let size = width * height;
+
+    let textureRGB = new Uint8Array(size * 3);
+
+    let realColor = this.getColor(color);
+    //Color
+    for (let i = 0; i < size; i++) {
+        textureRGB[i * 3] = realColor.r * 0xff;
+        textureRGB[i * 3 + 1] = realColor.g * 0xff;
+        textureRGB[i * 3 + 2] = realColor.b * 0xff;
+    }
+
+    let dummyDataTex = new THREE.DataTexture(textureRGB, width, height, THREE.RGBFormat);
+    dummyDataTex.needsUpdate = true;
+
+    return dummyDataTex;
+
+};
+
 function TextureGenerator() {
+
+    this.DEFAULT_COLOR = 'gray';
+    this.DEFAULT_MATERIAL = 'panel';
 
     this.initGenerators();
 
 }
+
 TextureGenerator.prototype.initGenerators = function () {
     this.textureCache = [];
 
     this.textureCache['grass'] = this.grassTexture();
 
+    this.buildingTextureFabric = new BuildingTextureFabric();
+
 };
 
 TextureGenerator.prototype.getTexture = function (key) {
     return this.textureCache[key];
+};
+
+TextureGenerator.prototype.generateBuildingTexture = function (options) {
+
+    let color = options.color;
+    if (color === undefined) {
+        color = this.DEFAULT_COLOR;
+    }
+    let material = options.material;
+    if (material === undefined) {
+        material = this.DEFAULT_MATERIAL;
+    }
+    let floors = options.floors;
+    if (floors === undefined) {
+        floors = 1;
+    }
+
+    let texture = this.buildingTextureFabric.buildTexture(
+        color, material, floors
+    );
+
+    return texture;
 };
 
 TextureGenerator.prototype.generateDefaultBuildingTexture = function (buildingHeight) {
@@ -432,7 +531,7 @@ TextureGenerator.prototype.generateDefaultBuildingTexture = function (buildingHe
 
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
-    this.textureCache['defultBuildingTexture'] = texture;
+    this.textureCache['defaultBuildingTexture'] = texture;
     return texture;
 };
 

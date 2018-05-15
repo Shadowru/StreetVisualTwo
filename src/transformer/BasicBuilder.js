@@ -48,7 +48,8 @@ BasicBuilder.prototype.generateEdges = function (contourCoordinates) {
 
 BasicBuilder.prototype.generateEdgesFromJSON = function (featureJSON) {
 
-    const edges = this.generateEdges(featureJSON.geometry.coordinates[0]);
+    const edges = this.generateEdges(
+        featureJSON.geometry.coordinates[0]);
 
     return edges;
 };

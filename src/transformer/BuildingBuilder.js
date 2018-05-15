@@ -6,8 +6,10 @@ function BuildingBuilder(geoProcessor, textureGenerator) {
     this.textureGenerator = textureGenerator;
 
     // Meters
-    this.DEFAULT_BUILDING_HEIGHT = 3.5;
+    this.DEFAULT_ZOCCOLE_HEIGHT = 0.6;
     this.DEFAULT_FLOOR_HEIGHT = 2.6;
+
+    this.DEFAULT_BUILDING_HEIGHT = this.DEFAULT_FLOOR_HEIGHT + this.DEFAULT_ZOCCOLE_HEIGHT;
     this.DEFAULT_ROOF_HEIGHT = 1.6;
 
     //Textures
@@ -36,7 +38,7 @@ BuildingBuilder.prototype.isYourFeature = function (featureJSON) {
         return false;
     }
 
-    if (featureJSON.properties.tags['building'] !== 'yes') {
+    if (featureJSON.properties.tags['building'] === undefined) {
         return false;
     }
 
@@ -179,23 +181,38 @@ BuildingBuilder.prototype.generateRoofGeometry = function (edges, height) {
     return undefined;
 };
 
-BuildingBuilder.prototype.getBuildingMaterial = function(properties){
+BuildingBuilder.prototype.getBuildingMaterial = function (properties) {
 
-    if(properties === undefined){
+    if (properties === undefined) {
         return this.material;
     }
 
-    if(properties.tags === undefined){
+    if (properties.tags === undefined) {
         return this.material;
     }
 
-    if(properties.tags['building:colour'] === undefined){
-        return this.material;
+    let cladding = properties.tags['building:cladding'];
+    let color = properties.tags['building:colour'];
+    let floors = properties.tags['building:levels'];
+
+    let options = {
+        material: cladding,
+        color: color,
+        floors: floors,
+        floorHeight: this.DEFAULT_FLOOR_HEIGHT,
+        zoccoleHeight: this.DEFAULT_ZOCCOLE_HEIGHT,
+        roofHeight: this.DEFAULT_ROOF_HEIGHT
+    };
+
+    let texture = this.textureGenerator.generateBuildingTexture(options);
+
+    if (texture !== undefined) {
+        return new THREE.MeshBasicMaterial({
+            map: texture,
+        });
     }
 
-    return new THREE.MeshBasicMaterial({
-        map: this.textureGenerator.generateDefaultBuildingTexture(this.DEFAULT_BUILDING_HEIGHT),
-    });
+    return this.material;
 };
 
 
