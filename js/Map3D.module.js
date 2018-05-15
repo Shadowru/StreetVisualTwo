@@ -198,7 +198,6 @@ function BuildingBuilder(geoProcessor) {
     this.roofMaterial = new THREE.MeshBasicMaterial({
         color: 'white',
     });
-    //this.material = new THREE.MeshPhongMaterial({color: 0x001111, flatShading: THREE.SmoothShading});
 
 }
 
@@ -248,22 +247,27 @@ BuildingBuilder.prototype.generateBuildingGeometry = function (edges, buildingHe
 
     const yPos = 1.0;
 
-    let vertexIndex = 0;
+    const firstEdge = edges[0];
+
+    geometry.vertices.push(
+        new THREE.Vector3(firstEdge.x1, yPos, firstEdge.y1),
+        new THREE.Vector3(firstEdge.x1, buildingHeight, firstEdge.y1)
+    );
+
+    let vertexIndex = 2;
 
     for (const edge of edges) {
         geometry.vertices.push(
-            new THREE.Vector3(edge.x1, yPos, edge.y1),
-            new THREE.Vector3(edge.x1, buildingHeight, edge.y1),
             new THREE.Vector3(edge.x2, yPos, edge.y2),
             new THREE.Vector3(edge.x2, buildingHeight, edge.y2)
         );
 
         geometry.faces.push(
-            new THREE.Face3(vertexIndex, vertexIndex + 3, vertexIndex + 1),
-            new THREE.Face3(vertexIndex, vertexIndex + 2, vertexIndex + 3),
+            new THREE.Face3(vertexIndex-2, vertexIndex+1, vertexIndex - 1),
+            new THREE.Face3(vertexIndex-2, vertexIndex + 0, vertexIndex + 1),
         );
 
-        vertexIndex = vertexIndex + 4;
+        vertexIndex = vertexIndex + 2;
     }
 
     geometry.computeBoundingSphere();
@@ -351,6 +355,7 @@ BuildingBuilder.prototype.build = function (featureJSON) {
 
         if (geometry !== undefined) {
             let building = new THREE.Mesh(geometry, this.material);
+
             let roofGeometry = this.generateRoofGeometry(edges, buildingHeight);
 
             if (roofGeometry !== undefined) {
@@ -379,6 +384,48 @@ BuildingBuilder.prototype.build = function (featureJSON) {
     return undefined;
 };
 
+function TextureGenerator() {
+
+    this.initGenerators();
+
+}
+TextureGenerator.prototype.initGenerators = function () {
+    this.textureCache = [];
+
+    this.textureCache['grass'] = this.grassTexture();
+
+};
+
+TextureGenerator.prototype.getTexture = function (key) {
+    return this.textureCache[key];
+};
+
+
+TextureGenerator.prototype.grassTexture = function () {
+
+    // const width = 2048;
+    // const height = 2048;
+    //
+    // let dummyRGBA = new Uint8Array(width * height * 4);
+    // for (var i = 0; i < width * height; i++) {
+    //     // RGB from 0 to 255
+    //     dummyRGBA[4 * i] = dummyRGBA[4 * i + 1] = dummyRGBA[4 * i + 2] = 0x55;
+    //     // OPACITY
+    //     dummyRGBA[4 * i + 3] = 0xff;
+    // }
+    //
+    // let dummyDataTex = new THREE.DataTexture(dummyRGBA, width, height, THREE.RGBAFormat);
+    // dummyDataTex.needsUpdate = true;
+    //
+    // return dummyDataTex;
+
+    const texture = new THREE.TextureLoader().load('assets/textures/grasslight-small.jpg');
+    texture.anisotropy = 4;
+
+    return texture;
+
+};
+
 function Map(width, depth, geoOptions) {
     this.width = width;
     this.depth = depth;
@@ -388,6 +435,8 @@ function Map(width, depth, geoOptions) {
     }
 
     this.geoProcessor = new GeoProcessor(this.width, this.depth, this.geoOptions);
+
+    this.textureGenerator = new TextureGenerator();
 
     this.baseObject = new THREE.Object3D();
 
@@ -446,18 +495,13 @@ Map.prototype.loadGeo = function () {
 
 Map.prototype.getObject3D = function () {
 
-    let base = new THREE.BoxGeometry(this.width, 0, this.depth);
+    const base = new THREE.BoxGeometry(this.width, 0, this.depth);
 
-    const texture = new THREE.TextureLoader().load('assets/textures/scity.png');
-
-    var material = new THREE.MeshBasicMaterial({
-        color: 0xffffff
+    const material = new THREE.MeshBasicMaterial({
+        map: this.textureGenerator.getTexture('grass')
     });
 
-    // let material = new THREE.MeshBasicMaterial({map: texture});
-
-    let baseMesh = new THREE.Mesh(base, material);
-    baseMesh.receiveShadow = true;
+    const baseMesh = new THREE.Mesh(base, material);
 
     this.baseObject.add(baseMesh);
 

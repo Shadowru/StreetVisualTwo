@@ -1,5 +1,6 @@
 import {GeoProcessor} from '../geo/GeoProcessor.js';
 import {BuildingBuilder} from '../transformer/BuildingBuilder.js';
+import {TextureGenerator} from '../texture/TextureGenerator';
 
 function Map(width, depth, geoOptions) {
     this.width = width;
@@ -10,6 +11,8 @@ function Map(width, depth, geoOptions) {
     }
 
     this.geoProcessor = new GeoProcessor(this.width, this.depth, this.geoOptions);
+
+    this.textureGenerator = new TextureGenerator();
 
     this.baseObject = new THREE.Object3D();
 
@@ -68,14 +71,13 @@ Map.prototype.loadGeo = function () {
 
 Map.prototype.getObject3D = function () {
 
-    let base = new THREE.BoxGeometry(this.width, 0, this.depth);
+    const base = new THREE.BoxGeometry(this.width, 0, this.depth);
 
-    var material = new THREE.MeshBasicMaterial({
-        color: 0xffffff
+    const material = new THREE.MeshBasicMaterial({
+        map: this.textureGenerator.getTexture('grass')
     });
 
-    let baseMesh = new THREE.Mesh(base, material);
-    baseMesh.receiveShadow = true;
+    const baseMesh = new THREE.Mesh(base, material);
 
     this.baseObject.add(baseMesh);
 

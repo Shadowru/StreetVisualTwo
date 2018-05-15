@@ -16,7 +16,6 @@ function BuildingBuilder(geoProcessor) {
     this.roofMaterial = new THREE.MeshBasicMaterial({
         color: 'white',
     });
-    //this.material = new THREE.MeshPhongMaterial({color: 0x001111, flatShading: THREE.SmoothShading});
 
 }
 
@@ -66,22 +65,27 @@ BuildingBuilder.prototype.generateBuildingGeometry = function (edges, buildingHe
 
     const yPos = 1.0;
 
-    let vertexIndex = 0;
+    const firstEdge = edges[0];
+
+    geometry.vertices.push(
+        new THREE.Vector3(firstEdge.x1, yPos, firstEdge.y1),
+        new THREE.Vector3(firstEdge.x1, buildingHeight, firstEdge.y1)
+    );
+
+    let vertexIndex = 2;
 
     for (const edge of edges) {
         geometry.vertices.push(
-            new THREE.Vector3(edge.x1, yPos, edge.y1),
-            new THREE.Vector3(edge.x1, buildingHeight, edge.y1),
             new THREE.Vector3(edge.x2, yPos, edge.y2),
             new THREE.Vector3(edge.x2, buildingHeight, edge.y2)
         );
 
         geometry.faces.push(
-            new THREE.Face3(vertexIndex, vertexIndex + 3, vertexIndex + 1),
-            new THREE.Face3(vertexIndex, vertexIndex + 2, vertexIndex + 3),
+            new THREE.Face3(vertexIndex-2, vertexIndex+1, vertexIndex - 1),
+            new THREE.Face3(vertexIndex-2, vertexIndex + 0, vertexIndex + 1),
         );
 
-        vertexIndex = vertexIndex + 4;
+        vertexIndex = vertexIndex + 2;
     }
 
     geometry.computeBoundingSphere();
@@ -169,6 +173,7 @@ BuildingBuilder.prototype.build = function (featureJSON) {
 
         if (geometry !== undefined) {
             let building = new THREE.Mesh(geometry, this.material);
+
             let roofGeometry = this.generateRoofGeometry(edges, buildingHeight);
 
             if (roofGeometry !== undefined) {
