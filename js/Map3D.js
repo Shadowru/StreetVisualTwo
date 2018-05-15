@@ -188,8 +188,10 @@
 	    return undefined;
 	};
 
-	function BuildingBuilder(geoProcessor) {
+	function BuildingBuilder(geoProcessor, textureGenerator) {
 	    BasicBuilder.call(this, geoProcessor);
+
+	    this.textureGenerator = textureGenerator;
 
 	    // Meters
 	    this.DEFAULT_BUILDING_HEIGHT = 3.5;
@@ -197,9 +199,10 @@
 	    this.DEFAULT_ROOF_HEIGHT = 1.6;
 
 	    //Textures
-	    this.material = new THREE.MeshBasicMaterial({
-	        color: 0x0000ff,
-	    });
+	    this.material =
+	        this.roofMaterial = new THREE.MeshBasicMaterial({
+	            map: this.textureGenerator.generateDefaultBuildingTexture(this.DEFAULT_BUILDING_HEIGHT),
+	        });
 
 	    this.roofMaterial = new THREE.MeshBasicMaterial({
 	        color: 'white',
@@ -262,6 +265,8 @@
 
 	    let vertexIndex = 2;
 
+	    geometry.faceVertexUvs = [[]];
+
 	    for (const edge of edges) {
 	        geometry.vertices.push(
 	            new THREE.Vector3(edge.x2, yPos, edge.y2),
@@ -269,12 +274,33 @@
 	        );
 
 	        geometry.faces.push(
-	            new THREE.Face3(vertexIndex-2, vertexIndex+1, vertexIndex - 1),
-	            new THREE.Face3(vertexIndex-2, vertexIndex + 0, vertexIndex + 1),
+	            new THREE.Face3(vertexIndex - 2, vertexIndex + 1, vertexIndex - 1),
+	            new THREE.Face3(vertexIndex - 2, vertexIndex + 0, vertexIndex + 1),
+	        );
+
+	        let proportionsX = edge.distance / 2;
+	        let proportionsY = buildingHeight / this.DEFAULT_BUILDING_HEIGHT;
+
+	        geometry.faceVertexUvs[0].push(
+	            [
+	                new THREE.Vector2(0, 0),
+	                new THREE.Vector2(proportionsX, proportionsY),
+	                new THREE.Vector2(0, proportionsY)
+	            ]
+	        );
+
+	        geometry.faceVertexUvs[0].push(
+	            [
+	                new THREE.Vector2(0, 0),
+	                new THREE.Vector2(proportionsX, 0),
+	                new THREE.Vector2(proportionsX, proportionsY)
+	            ]
 	        );
 
 	        vertexIndex = vertexIndex + 2;
+
 	    }
+
 
 	    geometry.computeBoundingSphere();
 
@@ -406,6 +432,15 @@
 	    return this.textureCache[key];
 	};
 
+	TextureGenerator.prototype.generateDefaultBuildingTexture = function (buildingHeight) {
+	    const texture = new THREE.TextureLoader().load('assets/textures/TexturesCom_HighRiseResidential0083_1_seamless_S.jpg');
+	    texture.anisotropy = 4;
+
+	    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+	    this.textureCache['defultBuildingTexture'] = texture;
+	    return texture;
+	};
 
 	TextureGenerator.prototype.grassTexture = function () {
 
@@ -454,7 +489,7 @@
 
 	    this.builders = [];
 
-	    this.builders.push(new BuildingBuilder(this.geoProcessor));
+	    this.builders.push(new BuildingBuilder(this.geoProcessor, this.textureGenerator));
 
 	};
 

@@ -24,7 +24,7 @@ Map.prototype.initBuilders = function () {
 
     this.builders = [];
 
-    this.builders.push(new BuildingBuilder(this.geoProcessor));
+    this.builders.push(new BuildingBuilder(this.geoProcessor, this.textureGenerator));
 
 };
 

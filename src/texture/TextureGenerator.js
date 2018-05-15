@@ -15,6 +15,15 @@ TextureGenerator.prototype.getTexture = function (key) {
     return this.textureCache[key];
 };
 
+TextureGenerator.prototype.generateDefaultBuildingTexture = function (buildingHeight) {
+    const texture = new THREE.TextureLoader().load('assets/textures/TexturesCom_HighRiseResidential0083_1_seamless_S.jpg');
+    texture.anisotropy = 4;
+
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+    this.textureCache['defaultBuildingTexture'] = texture;
+    return texture;
+};
 
 TextureGenerator.prototype.grassTexture = function () {
 

@@ -1,7 +1,9 @@
 import {BasicBuilder} from './BasicBuilder.js';
 
-function BuildingBuilder(geoProcessor) {
+function BuildingBuilder(geoProcessor, textureGenerator) {
     BasicBuilder.call(this, geoProcessor);
+
+    this.textureGenerator = textureGenerator;
 
     // Meters
     this.DEFAULT_BUILDING_HEIGHT = 3.5;
@@ -10,7 +12,7 @@ function BuildingBuilder(geoProcessor) {
 
     //Textures
     this.material = new THREE.MeshBasicMaterial({
-        color: 0x0000ff,
+        map: this.textureGenerator.generateDefaultBuildingTexture(this.DEFAULT_BUILDING_HEIGHT),
     });
 
     this.roofMaterial = new THREE.MeshBasicMaterial({
@@ -74,6 +76,8 @@ BuildingBuilder.prototype.generateBuildingGeometry = function (edges, buildingHe
 
     let vertexIndex = 2;
 
+    geometry.faceVertexUvs = [[]];
+
     for (const edge of edges) {
         geometry.vertices.push(
             new THREE.Vector3(edge.x2, yPos, edge.y2),
@@ -81,12 +85,33 @@ BuildingBuilder.prototype.generateBuildingGeometry = function (edges, buildingHe
         );
 
         geometry.faces.push(
-            new THREE.Face3(vertexIndex-2, vertexIndex+1, vertexIndex - 1),
-            new THREE.Face3(vertexIndex-2, vertexIndex + 0, vertexIndex + 1),
+            new THREE.Face3(vertexIndex - 2, vertexIndex + 1, vertexIndex - 1),
+            new THREE.Face3(vertexIndex - 2, vertexIndex + 0, vertexIndex + 1),
+        );
+
+        let proportionsX = edge.distance / 2;
+        let proportionsY = buildingHeight / this.DEFAULT_BUILDING_HEIGHT;
+
+        geometry.faceVertexUvs[0].push(
+            [
+                new THREE.Vector2(0, 0),
+                new THREE.Vector2(proportionsX, proportionsY),
+                new THREE.Vector2(0, proportionsY)
+            ]
+        );
+
+        geometry.faceVertexUvs[0].push(
+            [
+                new THREE.Vector2(0, 0),
+                new THREE.Vector2(proportionsX, 0),
+                new THREE.Vector2(proportionsX, proportionsY)
+            ]
         );
 
         vertexIndex = vertexIndex + 2;
+
     }
+
 
     geometry.computeBoundingSphere();
 
@@ -154,6 +179,25 @@ BuildingBuilder.prototype.generateRoofGeometry = function (edges, height) {
     return undefined;
 };
 
+BuildingBuilder.prototype.getBuildingMaterial = function(properties){
+
+    if(properties === undefined){
+        return this.material;
+    }
+
+    if(properties.tags === undefined){
+        return this.material;
+    }
+
+    if(properties.tags['building:colour'] === undefined){
+        return this.material;
+    }
+
+    return new THREE.MeshBasicMaterial({
+        map: this.textureGenerator.generateDefaultBuildingTexture(this.DEFAULT_BUILDING_HEIGHT),
+    });
+};
+
 
 BuildingBuilder.prototype.build = function (featureJSON) {
     try {
@@ -172,7 +216,8 @@ BuildingBuilder.prototype.build = function (featureJSON) {
         const geometry = instance.generateBuildingGeometry(edges, buildingHeight);
 
         if (geometry !== undefined) {
-            let building = new THREE.Mesh(geometry, this.material);
+
+            let building = new THREE.Mesh(geometry, this.getBuildingMaterial(featureJSON.properties));
 
             let roofGeometry = this.generateRoofGeometry(edges, buildingHeight);
 
