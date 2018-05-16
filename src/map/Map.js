@@ -1,7 +1,7 @@
 import {GeoProcessor} from '../geo/GeoProcessor.js';
 import {BuildingBuilder} from '../transformer/BuildingBuilder.js';
-import {TextureGenerator} from '../texture/TextureGenerator';
-import {HighwayBuilder} from "../transformer/HighwayBuilder";
+import {TextureGenerator} from '../texture/TextureGenerator.js';
+import {HighwayBuilder} from '../transformer/HighwayBuilder.js';
 
 function Map(width, depth, geoOptions) {
     this.width = width;

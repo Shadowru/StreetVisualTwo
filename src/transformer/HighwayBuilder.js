@@ -8,7 +8,7 @@ function HighwayBuilder(geoProcessor, textureGenerator) {
     this.DEFAULT_LANE_WIDTH = 2.5;
 
     this.material = new THREE.MeshBasicMaterial({
-        color: 0x0000ff
+        map: textureGenerator.getTexture('road')
     });
 
     this.highwayFilter = [];
@@ -70,12 +70,14 @@ HighwayBuilder.prototype.buildHighwayGeometry = function (edges) {
 
     let pairOfVertices = this.generateVertices(firstEdge.x1, firstEdge.y1, firstEdge.angle, this.DEFAULT_LANE_WIDTH);
 
+
     geometry.vertices.push(
         new THREE.Vector3(pairOfVertices.x1, yPos, pairOfVertices.y1),
         new THREE.Vector3(pairOfVertices.x2, yPos, pairOfVertices.y2)
     );
 
     let verticesIdx = 2;
+    geometry.faceVertexUvs = [[]];
 
     for (const edge of edges) {
         pairOfVertices = this.generateVertices(edge.x2, edge.y2, edge.angle, this.DEFAULT_LANE_WIDTH);
@@ -87,6 +89,24 @@ HighwayBuilder.prototype.buildHighwayGeometry = function (edges) {
         geometry.faces.push(
             new THREE.Face3(verticesIdx - 2, verticesIdx + 1, verticesIdx - 1),
             new THREE.Face3(verticesIdx - 2, verticesIdx + 0, verticesIdx + 1)
+        );
+
+        let proportionsX = edge.distance / 4;
+
+        geometry.faceVertexUvs[0].push(
+            [
+                new THREE.Vector2(0, 0),
+                new THREE.Vector2(proportionsX, 1),
+                new THREE.Vector2(0, 1)
+            ]
+        );
+
+        geometry.faceVertexUvs[0].push(
+            [
+                new THREE.Vector2(0, 0),
+                new THREE.Vector2(proportionsX, 0),
+                new THREE.Vector2(proportionsX, 1)
+            ]
         );
 
         verticesIdx = verticesIdx + 2;
