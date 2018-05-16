@@ -61,10 +61,8 @@ HighwayBuilder.prototype.generateVertices = function (x, y, angle, width) {
     };
 };
 
-HighwayBuilder.prototype.buildHighwayGeometry = function (edges) {
+HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos) {
     var geometry = new THREE.Geometry();
-
-    const yPos = 1.0;
 
     const firstEdge = edges[0];
 
@@ -115,13 +113,21 @@ HighwayBuilder.prototype.buildHighwayGeometry = function (edges) {
     return geometry;
 };
 
+HighwayBuilder.prototype.getYPos = function () {
+    return 1.0;
+};
+
 HighwayBuilder.prototype.build = function (featureJSON) {
 
     const edges = this.generateEdgesFromJSON(featureJSON);
 
-    let geometry = this.buildHighwayGeometry(edges);
+    if (edges === undefined) {
+        return undefined;
+    }
 
-    let line = new THREE.Mesh(geometry, this.material);
+    const geometry = this.buildHighwayGeometry(edges, this.getYPos());
+
+    const line = new THREE.Mesh(geometry, this.material);
 
     return [line];
 };

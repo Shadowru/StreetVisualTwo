@@ -54,6 +54,45 @@ GeoProcessor.prototype.loadJSON = function () {
     return loadPromise;
 };
 
+
+GeoProcessor.prototype.recalcCoordinatesArray = function (coordinatesArray) {
+
+    const instance = this;
+
+    function isCoordinateArray(element) {
+        if (element.length == 2) {
+            if (!Array.isArray(element[0]) && !Array.isArray(element[1])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function convertCoords(element) {
+        element[0] = instance.convertLongitude(element[0]);
+        element[1] = instance.convertLongitude(element[1]);
+    }
+
+    if (!Array.isArray(coordinatesArray[0])) {
+        console.log('Bad element : ' + element);
+        return undefined;
+    }
+
+    let thisIsCoordArray = isCoordinateArray(coordinatesArray[0]);
+
+    for (let i = 0; i < coordinatesArray.length; i++) {
+
+        let element = coordinatesArray[i];
+
+        if(thisIsCoordArray){
+            element = convertCoords(element);
+        } else {
+            element = this.recalcCoordinatesArray(element);
+        }
+    }
+    return coordinatesArray;
+};
+
 GeoProcessor.prototype.convertLongitude = function (longitude) {
 
     try {

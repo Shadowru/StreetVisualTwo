@@ -54,6 +54,45 @@ GeoProcessor.prototype.loadJSON = function () {
     return loadPromise;
 };
 
+
+GeoProcessor.prototype.recalcCoordinatesArray = function (coordinatesArray) {
+
+    const instance = this;
+
+    function isCoordinateArray(element) {
+        if (element.length == 2) {
+            if (!Array.isArray(element[0]) && !Array.isArray(element[1])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function convertCoords(element) {
+        element[0] = instance.convertLongitude(element[0]);
+        element[1] = instance.convertLongitude(element[1]);
+    }
+
+    if (!Array.isArray(coordinatesArray[0])) {
+        console.log('Bad element : ' + element);
+        return undefined;
+    }
+
+    let thisIsCoordArray = isCoordinateArray(coordinatesArray[0]);
+
+    for (let i = 0; i < coordinatesArray.length; i++) {
+
+        let element = coordinatesArray[i];
+
+        if(thisIsCoordArray){
+            element = convertCoords(element);
+        } else {
+            element = this.recalcCoordinatesArray(element);
+        }
+    }
+    return coordinatesArray;
+};
+
 GeoProcessor.prototype.convertLongitude = function (longitude) {
 
     try {
@@ -393,13 +432,13 @@ BuildingBuilder.prototype.getBuildingMaterial = function (properties) {
         roofHeight: this.DEFAULT_ROOF_HEIGHT
     };
 
-    let texture = this.textureGenerator.generateBuildingTexture(options);
-
-    if (texture !== undefined) {
-        return new THREE.MeshBasicMaterial({
-            map: texture,
-        });
-    }
+    // let texture = this.textureGenerator.generateBuildingTexture(options);
+    //
+    // if (texture !== undefined) {
+    //     return new THREE.MeshBasicMaterial({
+    //         map: texture,
+    //     });
+    // }
 
     return this.material;
 };
@@ -502,6 +541,7 @@ TextureGenerator.prototype.initGenerators = function () {
     this.textureCache['grass'] = this.simpleTexture('assets/textures/grasslight-small.jpg');
 
     this.textureCache['road'] = this.simpleTexture('assets/textures/road_road_0016_01_tiled_s.jpg');
+    this.textureCache['river'] = this.simpleTexture('assets/textures/TexturesCom_WaterPlain0040_1_M.jpg');
 
     this.buildingTextureFabric = new BuildingTextureFabric();
 
@@ -614,10 +654,8 @@ HighwayBuilder.prototype.generateVertices = function (x, y, angle, width) {
     };
 };
 
-HighwayBuilder.prototype.buildHighwayGeometry = function (edges) {
+HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos) {
     var geometry = new THREE.Geometry();
-
-    const yPos = 1.0;
 
     const firstEdge = edges[0];
 
@@ -668,15 +706,123 @@ HighwayBuilder.prototype.buildHighwayGeometry = function (edges) {
     return geometry;
 };
 
+HighwayBuilder.prototype.getYPos = function () {
+    return 1.0;
+};
+
 HighwayBuilder.prototype.build = function (featureJSON) {
 
     const edges = this.generateEdgesFromJSON(featureJSON);
 
-    let geometry = this.buildHighwayGeometry(edges);
+    if (edges === undefined) {
+        return undefined;
+    }
 
-    let line = new THREE.Mesh(geometry, this.material);
+    const geometry = this.buildHighwayGeometry(edges, this.getYPos());
+
+    const line = new THREE.Mesh(geometry, this.material);
 
     return [line];
+};
+
+function WaterwayBuilder(geoProcessor, textureGenerator) {
+    BasicBuilder.call(this, geoProcessor);
+
+    this.textureGenerator = textureGenerator;
+
+    this.material = new THREE.MeshBasicMaterial({
+        map: this.textureGenerator.getTexture('river')
+    });
+
+}
+
+WaterwayBuilder.prototype = Object.create(BasicBuilder.prototype);
+WaterwayBuilder.prototype.constructor = BasicBuilder;
+
+WaterwayBuilder.prototype.getYPos = function () {
+    return 0.8;
+};
+
+
+WaterwayBuilder.prototype.isYourFeature = function (featureJSON) {
+
+    let filter = BasicBuilder.prototype.isYourFeature.call(this, featureJSON);
+
+    if (filter === false) {
+        return false;
+    }
+
+    if (featureJSON.properties.tags['waterway'] === undefined) {
+        return false;
+    }
+
+    if (featureJSON.properties.tags['waterway'] !== "riverbank") {
+        return false;
+    }
+
+    if (featureJSON.geometry.type !== "MultiPolygon") {
+        return false;
+    }
+
+    return true;
+};
+
+WaterwayBuilder.prototype.generateRiverbedGeometry = function (coordinates) {
+    try {
+        let geometry = new THREE.Geometry();
+
+        const recalcPolygon = this.geoProcessor.recalcCoordinatesArray(coordinates);
+
+        let outerRing = earcut.flatten(recalcPolygon[0]);
+        let innerRing = earcut.flatten(recalcPolygon[1]);
+
+        let riverbedTriangles = earcut(outerRing.vertices);//, innerRing.holes, 2);//, data.holes, data.dimensions);
+
+        const riverbedTrianglesLength = riverbedTriangles.length;
+
+        for (const vertex of outerRing.vertices) {
+            geometry.vertices.push(
+                new THREE.Vector3(vertex[0], this.getYPos(), vertex[1])
+            );
+        }
+
+        const facesCnt = riverbedTrianglesLength / 3;
+
+        let normal = new THREE.Vector3(0, 1, 0); //optional
+
+        for (let faceIdx = 0; faceIdx < facesCnt; faceIdx++) {
+
+            const faceIndexBase = faceIdx * 3;
+            // CCW rotate
+            geometry.faces.push(
+                new THREE.Face3(
+                    riverbedTriangles[faceIndexBase + 2],
+                    riverbedTriangles[faceIndexBase + 1],
+                    riverbedTriangles[faceIndexBase + 0],
+                    normal
+                )
+            );
+        }
+
+        return geometry;
+
+    } catch (e) {
+        console.log('Exception : ' + e);
+        console.log(coordinates);
+    }
+    return undefined;
+};
+
+WaterwayBuilder.prototype.build = function (featureJSON) {
+
+    const geometry = this.generateRiverbedGeometry(featureJSON.geometry.coordinates);
+
+    if (geometry !== undefined) {
+        const riverbed = new THREE.Mesh(geometry, this.material);
+        return [riverbed];
+    }
+
+    return undefined;
 };
 
 function Map(width, depth, geoOptions) {
@@ -703,6 +849,7 @@ Map.prototype.initBuilders = function () {
 
     this.builders.push(new BuildingBuilder(this.geoProcessor, this.textureGenerator));
     this.builders.push(new HighwayBuilder(this.geoProcessor, this.textureGenerator));
+    this.builders.push(new WaterwayBuilder(this.geoProcessor, this.textureGenerator));
 
 };
 

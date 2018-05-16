@@ -15,6 +15,7 @@ TextureGenerator.prototype.initGenerators = function () {
     this.textureCache['grass'] = this.simpleTexture('assets/textures/grasslight-small.jpg');
 
     this.textureCache['road'] = this.simpleTexture('assets/textures/road_road_0016_01_tiled_s.jpg');
+    this.textureCache['river'] = this.simpleTexture('assets/textures/TexturesCom_WaterPlain0040_1_M.jpg');
 
     this.buildingTextureFabric = new BuildingTextureFabric();
 

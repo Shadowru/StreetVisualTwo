@@ -200,13 +200,13 @@ BuildingBuilder.prototype.getBuildingMaterial = function (properties) {
         roofHeight: this.DEFAULT_ROOF_HEIGHT
     };
 
-    let texture = this.textureGenerator.generateBuildingTexture(options);
-
-    if (texture !== undefined) {
-        return new THREE.MeshBasicMaterial({
-            map: texture,
-        });
-    }
+    // let texture = this.textureGenerator.generateBuildingTexture(options);
+    //
+    // if (texture !== undefined) {
+    //     return new THREE.MeshBasicMaterial({
+    //         map: texture,
+    //     });
+    // }
 
     return this.material;
 };

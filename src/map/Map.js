@@ -2,6 +2,7 @@ import {GeoProcessor} from '../geo/GeoProcessor.js';
 import {BuildingBuilder} from '../transformer/BuildingBuilder.js';
 import {TextureGenerator} from '../texture/TextureGenerator.js';
 import {HighwayBuilder} from '../transformer/HighwayBuilder.js';
+import {WaterwayBuilder} from '../transformer/WaterwayBuilder.js';
 
 function Map(width, depth, geoOptions) {
     this.width = width;
@@ -27,6 +28,7 @@ Map.prototype.initBuilders = function () {
 
     this.builders.push(new BuildingBuilder(this.geoProcessor, this.textureGenerator));
     this.builders.push(new HighwayBuilder(this.geoProcessor, this.textureGenerator));
+    this.builders.push(new WaterwayBuilder(this.geoProcessor, this.textureGenerator));
 
 };
 
