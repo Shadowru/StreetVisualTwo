@@ -40,6 +40,7 @@ BasicBuilder.prototype.generateEdges = function (contourCoordinates) {
 
     for (const edge of edges) {
         edge.distance = Math.hypot(edge.x1 - edge.x2, edge.y1 - edge.y2);
+        edge.angle = Math.atan2(edge.x2 - edge.x1, edge.y2 - edge.y1);
     }
 
     return edges;
@@ -48,10 +49,19 @@ BasicBuilder.prototype.generateEdges = function (contourCoordinates) {
 
 BasicBuilder.prototype.generateEdgesFromJSON = function (featureJSON) {
 
-    const edges = this.generateEdges(
-        featureJSON.geometry.coordinates[0]);
+    const geometryType = featureJSON.geometry.type;
 
-    return edges;
+    switch (geometryType) {
+        case 'LineString':
+            return this.generateEdges(
+                featureJSON.geometry.coordinates);
+        case 'Polygon':
+            return this.generateEdges(
+                featureJSON.geometry.coordinates[0]);
+        default:
+            console.log('Unknown type : ' + geometryType);
+    }
+    return undefined;
 };
 
 

@@ -1,6 +1,7 @@
 import {GeoProcessor} from '../geo/GeoProcessor.js';
 import {BuildingBuilder} from '../transformer/BuildingBuilder.js';
 import {TextureGenerator} from '../texture/TextureGenerator';
+import {HighwayBuilder} from "../transformer/HighwayBuilder";
 
 function Map(width, depth, geoOptions) {
     this.width = width;
@@ -25,9 +26,13 @@ Map.prototype.initBuilders = function () {
     this.builders = [];
 
     this.builders.push(new BuildingBuilder(this.geoProcessor, this.textureGenerator));
+    this.builders.push(new HighwayBuilder(this.geoProcessor, this.textureGenerator));
 
 };
 
+Map.prototype.addFeature = function (feature3D) {
+    this.baseObject.add(feature3D)
+};
 
 Map.prototype.buildFromFeature = function (featureJSON) {
 
@@ -41,9 +46,13 @@ Map.prototype.buildFromFeature = function (featureJSON) {
             );
 
             if (feature3Ds !== undefined) {
-                feature3Ds.forEach(function (feature3D) {
-                    instance.baseObject.add(feature3D);
-                });
+                if (Array.isArray(feature3Ds)) {
+                    feature3Ds.forEach(function (feature3D) {
+                        instance.addFeature(feature3D);
+                    });
+                } else {
+                    instance.addFeature(feature3D);
+                }
             }
         }
     });

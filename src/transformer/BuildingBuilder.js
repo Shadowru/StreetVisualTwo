@@ -38,10 +38,6 @@ BuildingBuilder.prototype.isYourFeature = function (featureJSON) {
         return false;
     }
 
-    if (featureJSON.properties.tags['building'] === undefined) {
-        return false;
-    }
-
     if (featureJSON.geometry.type !== "Polygon") {
         return false;
     }
