@@ -53,7 +53,7 @@ Map.prototype.buildFromFeature = function (featureJSON) {
                         instance.addFeature(feature3D);
                     });
                 } else {
-                    instance.addFeature(feature3D);
+                    instance.addFeature(feature3Ds);
                 }
             }
         }

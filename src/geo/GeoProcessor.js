@@ -42,7 +42,7 @@ GeoProcessor.prototype.loadJSON = function () {
         const loader = new THREE.FileLoader();
 
         loader.load(
-            'assets/1.json',
+            'assets/2.json',
             function (text) {
                 const json = JSON.parse(text);
 
