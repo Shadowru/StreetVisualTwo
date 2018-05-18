@@ -75,25 +75,23 @@ WaterwayBuilder.prototype.generateRiverbedGeometry = function (coordinates) {
                 new THREE.Vector3(vertex[0], this.getYPos(), vertex[1])
             );
         }
-        /*
-                const facesCnt = riverbedTrianglesLength / 3;
+        const facesCnt = riverbedTrianglesLength / 3;
 
-                let normal = new THREE.Vector3(0, 1, 0); //optional
+        let normal = new THREE.Vector3(0, 1, 0); //optional
 
-                for (let faceIdx = 0; faceIdx < facesCnt; faceIdx++) {
+        for (let faceIdx = 0; faceIdx < facesCnt; faceIdx++) {
 
-                    const faceIndexBase = faceIdx * 3;
-                    // CCW rotate
-                    geometry.faces.push(
-                        new THREE.Face3(
-                            riverbedTriangles[faceIndexBase + 2],
-                            riverbedTriangles[faceIndexBase + 1],
-                            riverbedTriangles[faceIndexBase + 0],
-                            normal
-                        )
-                    );
-                }
-        */
+            const faceIndexBase = faceIdx * 3;
+            // CCW rotate
+            geometry.faces.push(
+                new THREE.Face3(
+                    riverbedTriangles[faceIndexBase + 2],
+                    riverbedTriangles[faceIndexBase + 1],
+                    riverbedTriangles[faceIndexBase + 0],
+                    normal
+                )
+            );
+        }
         return geometry;
 
     } catch (e) {
