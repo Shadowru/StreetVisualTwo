@@ -5,10 +5,10 @@ function HighwayBuilder(geoProcessor, textureGenerator) {
 
     this.textureGenerator = textureGenerator;
 
-    this.DEFAULT_LANE_WIDTH = 2.5;
+    this.DEFAULT_LANE_WIDTH = 0.7;
 
     this.material = new THREE.MeshBasicMaterial({
-        map: textureGenerator.getTexture('road')
+        map: textureGenerator.getTexture('asphalt')
     });
 
     this.highwayFilter = [];
@@ -19,6 +19,7 @@ function HighwayBuilder(geoProcessor, textureGenerator) {
     this.highwayFilter['tertiary'] = true;
     this.highwayFilter['residential'] = true;
     this.highwayFilter['living_street'] = true;
+    this.highwayFilter['service'] = true;
 
 }
 
@@ -61,12 +62,15 @@ HighwayBuilder.prototype.generateVertices = function (x, y, angle, width) {
     };
 };
 
-HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos) {
+HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos, lanes) {
+
     var geometry = new THREE.Geometry();
+
+    const lanesWidth = lanes * this.DEFAULT_LANE_WIDTH;
 
     const firstEdge = edges[0];
 
-    let pairOfVertices = this.generateVertices(firstEdge.x1, firstEdge.y1, firstEdge.angle, this.DEFAULT_LANE_WIDTH);
+    let pairOfVertices = this.generateVertices(firstEdge.x1, firstEdge.y1, firstEdge.angle, lanesWidth);
 
 
     geometry.vertices.push(
@@ -78,7 +82,7 @@ HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos) {
     geometry.faceVertexUvs = [[]];
 
     for (const edge of edges) {
-        pairOfVertices = this.generateVertices(edge.x2, edge.y2, edge.angle, this.DEFAULT_LANE_WIDTH);
+        pairOfVertices = this.generateVertices(edge.x2, edge.y2, edge.angle, lanesWidth);
         geometry.vertices.push(
             new THREE.Vector3(pairOfVertices.x1, yPos, pairOfVertices.y1),
             new THREE.Vector3(pairOfVertices.x2, yPos, pairOfVertices.y2)
@@ -90,12 +94,13 @@ HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos) {
         );
 
         let proportionsX = edge.distance / 4;
+        let proportionsY = lanes / 2;
 
         geometry.faceVertexUvs[0].push(
             [
                 new THREE.Vector2(0, 0),
-                new THREE.Vector2(proportionsX, 1),
-                new THREE.Vector2(0, 1)
+                new THREE.Vector2(proportionsX, proportionsY),
+                new THREE.Vector2(0, proportionsY)
             ]
         );
 
@@ -103,7 +108,7 @@ HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos) {
             [
                 new THREE.Vector2(0, 0),
                 new THREE.Vector2(proportionsX, 0),
-                new THREE.Vector2(proportionsX, 1)
+                new THREE.Vector2(proportionsX, proportionsY)
             ]
         );
 
@@ -125,7 +130,15 @@ HighwayBuilder.prototype.build = function (featureJSON) {
         return undefined;
     }
 
-    const geometry = this.buildHighwayGeometry(edges, this.getYPos());
+    let lanes = 1;
+
+    try{
+        lanes = featureJSON.properties.tags.lanes;
+    } catch (e) {
+        console.log(e);
+    }
+
+    const geometry = this.buildHighwayGeometry(edges, this.getYPos(), lanes);
 
     const line = new THREE.Mesh(geometry, this.material);
 

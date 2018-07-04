@@ -38,11 +38,11 @@ BuildingBuilder.prototype.isYourFeature = function (featureJSON) {
         return false;
     }
 
-    if (featureJSON.geometry.type !== "Polygon") {
-        return false;
+    if (featureJSON.geometry.type === "Polygon") {
+        return true;
     }
 
-    return true;
+    return false;
 };
 
 BuildingBuilder.prototype.calcBuildingHeight = function (tags) {

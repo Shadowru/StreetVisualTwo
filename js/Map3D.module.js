@@ -6,6 +6,10 @@ function GeoProcessor(width, height, geoOptions) {
     this.halfWidth = this.width / 2;
     this.halfHeight = this.height / 2;
 
+    //calcGeo(geoOptions);
+}
+
+GeoProcessor.prototype.calcGeo = function (geoOptions) {
     this.geoOptions = geoOptions;
 
     const from = turf.point(this.geoOptions.upperLeft);
@@ -30,21 +34,32 @@ function GeoProcessor(width, height, geoOptions) {
 
     console.log('metersPerPixelX : ' + this.metersPerPixelX);
     console.log('metersPerPixelZ : ' + this.metersPerPixelZ);
-
-}
+};
 
 GeoProcessor.prototype.loadJSON = function () {
 
     THREE.Cache.enabled = true;
+
+    const instance = this;
 
     let loadPromise = new Promise(function (resolve, reject) {
 
         const loader = new THREE.FileLoader();
 
         loader.load(
-            'assets/2.json',
+            //'assets/export.geojson',
+            'assets/1.json',
             function (text) {
                 const json = JSON.parse(text);
+
+                var bbox = turf.bbox(json);
+
+                var exportMap = {
+                    upperLeft: [bbox[0], bbox[1]],
+                    downRight: [bbox[2], bbox[3]]
+                };
+
+                instance.calcGeo(exportMap);
 
                 resolve(json);
             }
@@ -70,7 +85,7 @@ GeoProcessor.prototype.recalcCoordinatesArray = function (coordinatesArray) {
 
     function convertCoords(element) {
         element[0] = instance.convertLongitude(element[0]);
-        element[1] = instance.convertLongitude(element[1]);
+        element[1] = instance.convertLatitude(element[1]);
     }
 
     if (!Array.isArray(coordinatesArray[0])) {
@@ -78,13 +93,13 @@ GeoProcessor.prototype.recalcCoordinatesArray = function (coordinatesArray) {
         return undefined;
     }
 
-    let thisIsCoordArray = isCoordinateArray(coordinatesArray[0]);
+    let thisIsCoordinateArray = isCoordinateArray(coordinatesArray[0]);
 
     for (let i = 0; i < coordinatesArray.length; i++) {
 
         let element = coordinatesArray[i];
 
-        if(thisIsCoordArray){
+        if (thisIsCoordinateArray) {
             element = convertCoords(element);
         } else {
             element = this.recalcCoordinatesArray(element);
@@ -270,11 +285,11 @@ BuildingBuilder.prototype.isYourFeature = function (featureJSON) {
         return false;
     }
 
-    if (featureJSON.geometry.type !== "Polygon") {
-        return false;
+    if (featureJSON.geometry.type === "Polygon") {
+        return true;
     }
 
-    return true;
+    return false;
 };
 
 BuildingBuilder.prototype.calcBuildingHeight = function (tags) {
@@ -538,9 +553,10 @@ function TextureGenerator() {
 TextureGenerator.prototype.initGenerators = function () {
     this.textureCache = [];
 
-    this.textureCache['grass'] = this.simpleTexture('assets/textures/grasslight-small.jpg');
+    this.textureCache['grass'] = this.simpleTexture('assets/textures/TexturesCom_Grass0130_1_seamless_S.jpg');
+    this.textureCache['grass'].repeat = new THREE.Vector2(100, 100);
 
-    this.textureCache['road'] = this.simpleTexture('assets/textures/road_road_0016_01_tiled_s.jpg');
+    this.textureCache['asphalt'] = this.simpleTexture('assets/textures/road_road_0016_01_tiled_s.jpg');
     this.textureCache['river'] = this.simpleTexture('assets/textures/TexturesCom_WaterPlain0040_1_M.jpg');
 
     this.buildingTextureFabric = new BuildingTextureFabric();
@@ -574,7 +590,8 @@ TextureGenerator.prototype.generateBuildingTexture = function (options) {
 };
 
 TextureGenerator.prototype.generateDefaultBuildingTexture = function (buildingHeight) {
-    const texture = new THREE.TextureLoader().load('assets/textures/TexturesCom_HighRiseResidential0083_1_seamless_S.jpg');
+    //const texture = new THREE.TextureLoader().load('assets/textures/TexturesCom_HighRiseResidential0083_1_seamless_S.jpg');
+    const texture = new THREE.TextureLoader().load('assets/textures/brick_diffuse.jpg');
     texture.anisotropy = 4;
 
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -598,10 +615,10 @@ function HighwayBuilder(geoProcessor, textureGenerator) {
 
     this.textureGenerator = textureGenerator;
 
-    this.DEFAULT_LANE_WIDTH = 2.5;
+    this.DEFAULT_LANE_WIDTH = 0.7;
 
     this.material = new THREE.MeshBasicMaterial({
-        map: textureGenerator.getTexture('road')
+        map: textureGenerator.getTexture('asphalt')
     });
 
     this.highwayFilter = [];
@@ -612,6 +629,7 @@ function HighwayBuilder(geoProcessor, textureGenerator) {
     this.highwayFilter['tertiary'] = true;
     this.highwayFilter['residential'] = true;
     this.highwayFilter['living_street'] = true;
+    this.highwayFilter['service'] = true;
 
 }
 
@@ -654,12 +672,15 @@ HighwayBuilder.prototype.generateVertices = function (x, y, angle, width) {
     };
 };
 
-HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos) {
+HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos, lanes) {
+
     var geometry = new THREE.Geometry();
+
+    const lanesWidth = lanes * this.DEFAULT_LANE_WIDTH;
 
     const firstEdge = edges[0];
 
-    let pairOfVertices = this.generateVertices(firstEdge.x1, firstEdge.y1, firstEdge.angle, this.DEFAULT_LANE_WIDTH);
+    let pairOfVertices = this.generateVertices(firstEdge.x1, firstEdge.y1, firstEdge.angle, lanesWidth);
 
 
     geometry.vertices.push(
@@ -671,7 +692,7 @@ HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos) {
     geometry.faceVertexUvs = [[]];
 
     for (const edge of edges) {
-        pairOfVertices = this.generateVertices(edge.x2, edge.y2, edge.angle, this.DEFAULT_LANE_WIDTH);
+        pairOfVertices = this.generateVertices(edge.x2, edge.y2, edge.angle, lanesWidth);
         geometry.vertices.push(
             new THREE.Vector3(pairOfVertices.x1, yPos, pairOfVertices.y1),
             new THREE.Vector3(pairOfVertices.x2, yPos, pairOfVertices.y2)
@@ -683,12 +704,13 @@ HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos) {
         );
 
         let proportionsX = edge.distance / 4;
+        let proportionsY = lanes / 2;
 
         geometry.faceVertexUvs[0].push(
             [
                 new THREE.Vector2(0, 0),
-                new THREE.Vector2(proportionsX, 1),
-                new THREE.Vector2(0, 1)
+                new THREE.Vector2(proportionsX, proportionsY),
+                new THREE.Vector2(0, proportionsY)
             ]
         );
 
@@ -696,7 +718,7 @@ HighwayBuilder.prototype.buildHighwayGeometry = function (edges, yPos) {
             [
                 new THREE.Vector2(0, 0),
                 new THREE.Vector2(proportionsX, 0),
-                new THREE.Vector2(proportionsX, 1)
+                new THREE.Vector2(proportionsX, proportionsY)
             ]
         );
 
@@ -718,7 +740,15 @@ HighwayBuilder.prototype.build = function (featureJSON) {
         return undefined;
     }
 
-    const geometry = this.buildHighwayGeometry(edges, this.getYPos());
+    let lanes = 1;
+
+    try{
+        lanes = featureJSON.properties.tags.lanes;
+    } catch (e) {
+        console.log(e);
+    }
+
+    const geometry = this.buildHighwayGeometry(edges, this.getYPos(), lanes);
 
     const line = new THREE.Mesh(geometry, this.material);
 
@@ -731,7 +761,8 @@ function WaterwayBuilder(geoProcessor, textureGenerator) {
     this.textureGenerator = textureGenerator;
 
     this.material = new THREE.MeshBasicMaterial({
-        map: this.textureGenerator.getTexture('river')
+        map: this.textureGenerator.getTexture('river'),
+        side: THREE.DoubleSide
     });
 
 }
@@ -740,7 +771,7 @@ WaterwayBuilder.prototype = Object.create(BasicBuilder.prototype);
 WaterwayBuilder.prototype.constructor = BasicBuilder;
 
 WaterwayBuilder.prototype.getYPos = function () {
-    return 1.8;
+    return 0.8;
 };
 
 
@@ -773,54 +804,97 @@ WaterwayBuilder.prototype.isYourFeature = function (featureJSON) {
 
 WaterwayBuilder.prototype.generateRiverbedGeometry = function (coordinates) {
     try {
-        let geometry = new THREE.Geometry();
-
-        let recalcedCoordinates = this.geoProcessor.recalcCoordinatesArray(coordinates);
-        //let recalcedCoordinates = coordinates;
-
-        if (recalcedCoordinates === undefined) {
-            return undefined;
-        }
-
-        let polygonCoords = [];
-
-        for (const way of recalcedCoordinates) {
-
-            const outerRingCoordinates = way[0];
-            polygonCoords = polygonCoords.concat(outerRingCoordinates);
-        }
 
 
-        let riverbedTriangles = earcut(polygonCoords);//, innerRing.holes, 2);//, data.holes, data.dimensions);
+        var poly = turf.polygon(coordinates);
+        var triangles = turf.tesselate(poly);
 
-        const riverbedTrianglesLength = riverbedTriangles.length;
+        console.log(triangles);
 
-        for (const vertex of recalcedCoordinates[0][0]) {
-            geometry.vertices.push(
-                new THREE.Vector3(vertex[0], this.getYPos(), vertex[1])
+        var riverbedGeometry = new THREE.Geometry();
+
+        let vertexIndex = 0;
+
+        const normal = new THREE.Vector3(0, 1, 0); //optional
+
+        riverbedGeometry.faceVertexUvs = [[]];
+
+        for (const triangle of triangles.features) {
+
+            const coordinate = triangle.geometry.coordinates;
+
+            riverbedGeometry.vertices.push(
+                new THREE.Vector3(coordinate[0][0][0], this.getYPos(), coordinate[0][0][1]),
+                new THREE.Vector3(coordinate[0][1][0], this.getYPos(), coordinate[0][1][1]),
+                new THREE.Vector3(coordinate[0][2][0], this.getYPos(), coordinate[0][2][1]),
+                new THREE.Vector3(coordinate[0][3][0], this.getYPos(), coordinate[0][3][1])
             );
+            riverbedGeometry.faces.push(
+                new THREE.Face3(
+                    vertexIndex, vertexIndex+1, vertexIndex+2, normal
+                ),
+                new THREE.Face3(
+                    vertexIndex, vertexIndex+2, vertexIndex+3, normal
+                )
+            );
+
+            const proportionsX = 1;
+            const proportionsY = 1;
+
+            riverbedGeometry.faceVertexUvs[0].push(
+                [
+                    new THREE.Vector2(0, 0),
+                    new THREE.Vector2(proportionsX, proportionsY),
+                    new THREE.Vector2(0, proportionsY)
+                ]
+            );
+
+            riverbedGeometry.faceVertexUvs[0].push(
+                [
+                    new THREE.Vector2(0, 0),
+                    new THREE.Vector2(proportionsX, 0),
+                    new THREE.Vector2(proportionsX, proportionsY)
+                ]
+            );
+
+            vertexIndex += 4;
         }
+
+        return riverbedGeometry;
+
         /*
-                const facesCnt = riverbedTrianglesLength / 3;
+        var data = earcut.flatten(coordinates);
 
-                let normal = new THREE.Vector3(0, 1, 0); //optional
+        var riverbedTriangleIndex = earcut(data.vertices, data.holes, data.dimensions);
 
-                for (let faceIdx = 0; faceIdx < facesCnt; faceIdx++) {
+        if (riverbedTriangleIndex.length > 0) {
 
-                    const faceIndexBase = faceIdx * 3;
-                    // CCW rotate
-                    geometry.faces.push(
-                        new THREE.Face3(
-                            riverbedTriangles[faceIndexBase + 2],
-                            riverbedTriangles[faceIndexBase + 1],
-                            riverbedTriangles[faceIndexBase + 0],
-                            normal
-                        )
-                    );
-                }
-        */
-        return geometry;
+            var riverbedGeometry = new THREE.Geometry();
 
+            let coordIdx = 0;
+            while (coordIdx < data.vertices.length) {
+                riverbedGeometry.vertices.push(
+                    new THREE.Vector3(data.vertices[coordIdx], this.getYPos(), data.vertices[coordIdx + 1])
+                );
+                coordIdx += 2;
+            }
+
+            let triangleIdx = 0;
+
+            while (triangleIdx < coordinates.length) {
+                riverbedGeometry.faces.push(
+                    new THREE.Face3(
+                        riverbedTriangleIndex[triangleIdx],
+                        riverbedTriangleIndex[triangleIdx + 1],
+                        riverbedTriangleIndex[triangleIdx + 2]
+                    )
+                );
+                triangleIdx += 3;
+            }
+
+            return riverbedGeometry;
+        }
+            */
     } catch (e) {
         console.log('Exception : ' + e);
         console.log(coordinates);
@@ -830,18 +904,21 @@ WaterwayBuilder.prototype.generateRiverbedGeometry = function (coordinates) {
 
 WaterwayBuilder.prototype.build = function (featureJSON) {
 
-    const geometry = this.generateRiverbedGeometry(featureJSON.geometry.coordinates);
+    console.log('Build waterway');
+    console.log(featureJSON);
+
+    let riverbedPolygon = this.geoProcessor.recalcCoordinatesArray(featureJSON.geometry.coordinates);
+
+    if (featureJSON.geometry.type === "MultiPolygon") {
+        console.log('MultiPolygon');
+    }
+
+    const geometry = this.generateRiverbedGeometry(riverbedPolygon);
 
     if (geometry !== undefined) {
-        const riverbed = new THREE.Line(geometry, new THREE.LineBasicMaterial({
-                color: 0xffffff,
-                linewidth: 1
-            }
-        ));
-        //const riverbed = new THREE.Mesh(geometry, this.material);
-        const helper = new THREE.VertexNormalsHelper(riverbed, 2, 0x00ff00, 1);
+        const riverbed = new THREE.Mesh(geometry, this.material);
 
-        return [riverbed, helper];
+        return [riverbed];
     }
 
     return undefined;

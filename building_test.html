@@ -20,7 +20,7 @@
 
 <script src="node_modules/@turf/turf/turf.js"></script>
 
-<script src="https://unpkg.com/earcut@2.1.1/dist/earcut.dev.js"></script>
+<script src="node_modules/earcut/dist/earcut.dev.js"></script>
 
 <script src="js/Map3D.js"></script>
 
@@ -83,7 +83,22 @@
             downRight: [37.6447, 55.7423]
         };
 
-        var cityMap = new MAP3D.Map(600, 300, map12);
+        var map13 = {
+            upperLeft: [37.6983, 55.8148],
+            downRight: [37.7320, 55.8043]
+        };
+
+        var map14 = {
+            upperLeft: [37.6935, 55.8143],
+            downRight: [37.7272, 55.8038]
+        };
+
+        var exportMap = {
+            upperLeft: [37.65427, 55.7799],
+            downRight: [37.74482, 55.82207]
+        };
+
+        var cityMap = new MAP3D.Map(800, 400, map14);
 
         mesh = cityMap.getObject3D();
         cityMap.loadGeo();

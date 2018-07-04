@@ -6,7 +6,8 @@ function WaterwayBuilder(geoProcessor, textureGenerator) {
     this.textureGenerator = textureGenerator;
 
     this.material = new THREE.MeshBasicMaterial({
-        map: this.textureGenerator.getTexture('river')
+        map: this.textureGenerator.getTexture('river'),
+        side: THREE.DoubleSide
     });
 
 }
@@ -15,7 +16,7 @@ WaterwayBuilder.prototype = Object.create(BasicBuilder.prototype);
 WaterwayBuilder.prototype.constructor = BasicBuilder;
 
 WaterwayBuilder.prototype.getYPos = function () {
-    return 1.8;
+    return 0.8;
 };
 
 
@@ -48,52 +49,97 @@ WaterwayBuilder.prototype.isYourFeature = function (featureJSON) {
 
 WaterwayBuilder.prototype.generateRiverbedGeometry = function (coordinates) {
     try {
-        let geometry = new THREE.Geometry();
-
-        let recalcedCoordinates = this.geoProcessor.recalcCoordinatesArray(coordinates);
-        //let recalcedCoordinates = coordinates;
-
-        if (recalcedCoordinates === undefined) {
-            return undefined;
-        }
-
-        let polygonCoords = [];
-
-        for (const way of recalcedCoordinates) {
-
-            const outerRingCoordinates = way[0];
-            polygonCoords = polygonCoords.concat(outerRingCoordinates);
-        }
 
 
-        let riverbedTriangles = earcut(polygonCoords);//, innerRing.holes, 2);//, data.holes, data.dimensions);
+        var poly = turf.polygon(coordinates);
+        var triangles = turf.tesselate(poly);
 
-        const riverbedTrianglesLength = riverbedTriangles.length;
+        console.log(triangles);
 
-        for (const vertex of recalcedCoordinates[0][0]) {
-            geometry.vertices.push(
-                new THREE.Vector3(vertex[0], this.getYPos(), vertex[1])
+        var riverbedGeometry = new THREE.Geometry();
+
+        let vertexIndex = 0;
+
+        const normal = new THREE.Vector3(0, 1, 0); //optional
+
+        riverbedGeometry.faceVertexUvs = [[]];
+
+        for (const triangle of triangles.features) {
+
+            const coordinate = triangle.geometry.coordinates;
+
+            riverbedGeometry.vertices.push(
+                new THREE.Vector3(coordinate[0][0][0], this.getYPos(), coordinate[0][0][1]),
+                new THREE.Vector3(coordinate[0][1][0], this.getYPos(), coordinate[0][1][1]),
+                new THREE.Vector3(coordinate[0][2][0], this.getYPos(), coordinate[0][2][1]),
+                new THREE.Vector3(coordinate[0][3][0], this.getYPos(), coordinate[0][3][1])
             );
-        }
-        const facesCnt = riverbedTrianglesLength / 3;
-
-        let normal = new THREE.Vector3(0, 1, 0); //optional
-
-        for (let faceIdx = 0; faceIdx < facesCnt; faceIdx++) {
-
-            const faceIndexBase = faceIdx * 3;
-            // CCW rotate
-            geometry.faces.push(
+            riverbedGeometry.faces.push(
                 new THREE.Face3(
-                    riverbedTriangles[faceIndexBase + 2],
-                    riverbedTriangles[faceIndexBase + 1],
-                    riverbedTriangles[faceIndexBase + 0],
-                    normal
+                    vertexIndex, vertexIndex+1, vertexIndex+2, normal
+                ),
+                new THREE.Face3(
+                    vertexIndex, vertexIndex+2, vertexIndex+3, normal
                 )
             );
-        }
-        return geometry;
 
+            const proportionsX = 1;
+            const proportionsY = 1;
+
+            riverbedGeometry.faceVertexUvs[0].push(
+                [
+                    new THREE.Vector2(0, 0),
+                    new THREE.Vector2(proportionsX, proportionsY),
+                    new THREE.Vector2(0, proportionsY)
+                ]
+            );
+
+            riverbedGeometry.faceVertexUvs[0].push(
+                [
+                    new THREE.Vector2(0, 0),
+                    new THREE.Vector2(proportionsX, 0),
+                    new THREE.Vector2(proportionsX, proportionsY)
+                ]
+            );
+
+            vertexIndex += 4;
+        }
+
+        return riverbedGeometry;
+
+        /*
+        var data = earcut.flatten(coordinates);
+
+        var riverbedTriangleIndex = earcut(data.vertices, data.holes, data.dimensions);
+
+        if (riverbedTriangleIndex.length > 0) {
+
+            var riverbedGeometry = new THREE.Geometry();
+
+            let coordIdx = 0;
+            while (coordIdx < data.vertices.length) {
+                riverbedGeometry.vertices.push(
+                    new THREE.Vector3(data.vertices[coordIdx], this.getYPos(), data.vertices[coordIdx + 1])
+                );
+                coordIdx += 2;
+            }
+
+            let triangleIdx = 0;
+
+            while (triangleIdx < coordinates.length) {
+                riverbedGeometry.faces.push(
+                    new THREE.Face3(
+                        riverbedTriangleIndex[triangleIdx],
+                        riverbedTriangleIndex[triangleIdx + 1],
+                        riverbedTriangleIndex[triangleIdx + 2]
+                    )
+                );
+                triangleIdx += 3;
+            }
+
+            return riverbedGeometry;
+        }
+            */
     } catch (e) {
         console.log('Exception : ' + e);
         console.log(coordinates);
@@ -103,18 +149,21 @@ WaterwayBuilder.prototype.generateRiverbedGeometry = function (coordinates) {
 
 WaterwayBuilder.prototype.build = function (featureJSON) {
 
-    const geometry = this.generateRiverbedGeometry(featureJSON.geometry.coordinates);
+    console.log('Build waterway');
+    console.log(featureJSON);
+
+    let riverbedPolygon = this.geoProcessor.recalcCoordinatesArray(featureJSON.geometry.coordinates);
+
+    if (featureJSON.geometry.type === "MultiPolygon") {
+        console.log('MultiPolygon');
+    }
+
+    const geometry = this.generateRiverbedGeometry(riverbedPolygon);
 
     if (geometry !== undefined) {
-        const riverbed = new THREE.Line(geometry, new THREE.LineBasicMaterial({
-                color: 0xffffff,
-                linewidth: 1
-            }
-        ));
-        //const riverbed = new THREE.Mesh(geometry, this.material);
-        const helper = new THREE.VertexNormalsHelper(riverbed, 2, 0x00ff00, 1);
+        const riverbed = new THREE.Mesh(geometry, this.material);
 
-        return [riverbed, helper];
+        return [riverbed];
     }
 
     return undefined;

@@ -12,9 +12,10 @@ function TextureGenerator() {
 TextureGenerator.prototype.initGenerators = function () {
     this.textureCache = [];
 
-    this.textureCache['grass'] = this.simpleTexture('assets/textures/grasslight-small.jpg');
+    this.textureCache['grass'] = this.simpleTexture('assets/textures/TexturesCom_Grass0130_1_seamless_S.jpg');
+    this.textureCache['grass'].repeat = new THREE.Vector2(100, 100);
 
-    this.textureCache['road'] = this.simpleTexture('assets/textures/road_road_0016_01_tiled_s.jpg');
+    this.textureCache['asphalt'] = this.simpleTexture('assets/textures/road_road_0016_01_tiled_s.jpg');
     this.textureCache['river'] = this.simpleTexture('assets/textures/TexturesCom_WaterPlain0040_1_M.jpg');
 
     this.buildingTextureFabric = new BuildingTextureFabric();
@@ -48,7 +49,8 @@ TextureGenerator.prototype.generateBuildingTexture = function (options) {
 };
 
 TextureGenerator.prototype.generateDefaultBuildingTexture = function (buildingHeight) {
-    const texture = new THREE.TextureLoader().load('assets/textures/TexturesCom_HighRiseResidential0083_1_seamless_S.jpg');
+    //const texture = new THREE.TextureLoader().load('assets/textures/TexturesCom_HighRiseResidential0083_1_seamless_S.jpg');
+    const texture = new THREE.TextureLoader().load('assets/textures/brick_diffuse.jpg');
     texture.anisotropy = 4;
 
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;

@@ -1,1 +1,1 @@
-osmtogeojson -e "map (12).osm"  > assets/1.json
+osmtogeojson -e "map (17).osm"  > assets/1.json

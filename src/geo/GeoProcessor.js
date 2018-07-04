@@ -3,9 +3,13 @@ function GeoProcessor(width, height, geoOptions) {
     this.width = width;
     this.height = height;
 
-    this.halfWidth = this.width / 2
-    this.halfHeight = this.height / 2
+    this.halfWidth = this.width / 2;
+    this.halfHeight = this.height / 2;
 
+    //calcGeo(geoOptions);
+}
+
+GeoProcessor.prototype.calcGeo = function (geoOptions) {
     this.geoOptions = geoOptions;
 
     const from = turf.point(this.geoOptions.upperLeft);
@@ -30,21 +34,32 @@ function GeoProcessor(width, height, geoOptions) {
 
     console.log('metersPerPixelX : ' + this.metersPerPixelX);
     console.log('metersPerPixelZ : ' + this.metersPerPixelZ);
-
-}
+};
 
 GeoProcessor.prototype.loadJSON = function () {
 
     THREE.Cache.enabled = true;
+
+    const instance = this;
 
     let loadPromise = new Promise(function (resolve, reject) {
 
         const loader = new THREE.FileLoader();
 
         loader.load(
-            'assets/2.json',
+            //'assets/export.geojson',
+            'assets/1.json',
             function (text) {
                 const json = JSON.parse(text);
+
+                var bbox = turf.bbox(json);
+
+                var exportMap = {
+                    upperLeft: [bbox[0], bbox[1]],
+                    downRight: [bbox[2], bbox[3]]
+                };
+
+                instance.calcGeo(exportMap);
 
                 resolve(json);
             }
@@ -70,7 +85,7 @@ GeoProcessor.prototype.recalcCoordinatesArray = function (coordinatesArray) {
 
     function convertCoords(element) {
         element[0] = instance.convertLongitude(element[0]);
-        element[1] = instance.convertLongitude(element[1]);
+        element[1] = instance.convertLatitude(element[1]);
     }
 
     if (!Array.isArray(coordinatesArray[0])) {
@@ -78,13 +93,13 @@ GeoProcessor.prototype.recalcCoordinatesArray = function (coordinatesArray) {
         return undefined;
     }
 
-    let thisIsCoordArray = isCoordinateArray(coordinatesArray[0]);
+    let thisIsCoordinateArray = isCoordinateArray(coordinatesArray[0]);
 
     for (let i = 0; i < coordinatesArray.length; i++) {
 
         let element = coordinatesArray[i];
 
-        if(thisIsCoordArray){
+        if (thisIsCoordinateArray) {
             element = convertCoords(element);
         } else {
             element = this.recalcCoordinatesArray(element);
